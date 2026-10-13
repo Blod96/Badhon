@@ -7,7 +7,17 @@ import 'features/request/create_request_screen.dart';
 import 'features/notifications/notifications_screen.dart';
 import 'features/profile/profile_screen.dart';
 
-void main() {
+import 'package:firebase_core/firebase_core.dart';
+import 'core/services/notification_service.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+    await NotificationService().initialize();
+  } catch (e) {
+    debugPrint('[Firebase Init] Running with fallback: $e');
+  }
   runApp(const BadhonApp());
 }
 
