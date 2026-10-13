@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "367110628736",
+    "project_id": "badhon-483e1",
+    "storage_bucket": "badhon-483e1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:367110628736:android:c2f448c19de70291104d65",
+        "android_client_info": {
+          "package_name": "bd.edu.nwu.badhon.badhon_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAnHY5jLbTDvevYd1Fq3s-Ar_hngZXRk3I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
