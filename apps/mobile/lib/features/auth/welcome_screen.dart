@@ -107,14 +107,43 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 children: [
                   ElevatedButton.icon(
                     onPressed: _isLoading ? null : _handleGoogleSignIn,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppTheme.textPrimary,
+                      elevation: 1,
+                      side: const BorderSide(color: Color(0xFFE2E8F0)),
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
                     icon: _isLoading
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.brandPrimary),
                           )
-                        : const Icon(Icons.g_mobiledata, size: 24),
-                    label: Text(_isLoading ? 'Signing In...' : 'SIGN IN WITH GOOGLE'),
+                        : Container(
+                            width: 22,
+                            height: 22,
+                            alignment: Alignment.center,
+                            child: const Text(
+                              'G',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF4285F4),
+                              ),
+                            ),
+                          ),
+                    label: Text(
+                      _isLoading ? 'Connecting...' : 'Continue with Google',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   const Text(
