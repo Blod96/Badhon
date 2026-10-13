@@ -1,0 +1,17 @@
+{
+  "projects": {
+    "default": "badhon-nwu-blood-connect"
+  },
+  "targets": {
+    "badhon-nwu-blood-connect": {
+      "hosting": {
+        "web-public": [
+          "badhon-nwu-web"
+        ],
+        "admin-portal": [
+          "badhon-nwu-admin"
+        ]
+      }
+    }
+  }
+}

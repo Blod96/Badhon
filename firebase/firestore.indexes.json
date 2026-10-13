@@ -1,0 +1,52 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "donorPublic",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublicVisible", "order": "ASCENDING" },
+        { "fieldPath": "bloodGroup", "order": "ASCENDING" },
+        { "fieldPath": "district", "order": "ASCENDING" },
+        { "fieldPath": "isAvailable", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "donorPublic",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublicVisible", "order": "ASCENDING" },
+        { "fieldPath": "division", "order": "ASCENDING" },
+        { "fieldPath": "district", "order": "ASCENDING" },
+        { "fieldPath": "isAvailable", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "donorPublic",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublicVisible", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "requestPublic",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "bloodGroup", "order": "ASCENDING" },
+        { "fieldPath": "urgency", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "requestPublic",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "district", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

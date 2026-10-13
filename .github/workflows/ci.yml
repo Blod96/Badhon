@@ -1,0 +1,48 @@
+name: CI & Quality Assurance
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  validate-and-test:
+    name: Lint, Test & Build Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+          run_install: false
+
+      - name: Install Node Dependencies
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Build Monorepo Packages & Functions
+        run: pnpm build
+
+      - name: Run Full Test Suite (E2E & Security)
+        run: pnpm test:all
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.1"
+          channel: "stable"
+
+      - name: Validate Flutter Mobile
+        working-directory: apps/mobile
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test test/widget_test.dart

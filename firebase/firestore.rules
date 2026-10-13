@@ -1,0 +1,159 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.admin == true;
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() && request.auth.token.superAdmin == true;
+    }
+
+    function isValidBloodGroup(bg) {
+      return bg in [
+        'A_POSITIVE', 'A_NEGATIVE', 
+        'B_POSITIVE', 'B_NEGATIVE', 
+        'AB_POSITIVE', 'AB_NEGATIVE', 
+        'O_POSITIVE', 'O_NEGATIVE'
+      ];
+    }
+
+    // Default Deny Everything
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ========================================================
+    // USERS COLLECTION: users/{uid}
+    // ========================================================
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      
+      // User can create their initial profile document
+      allow create: if isOwner(uid) 
+                    && request.resource.data.uid == uid
+                    && request.resource.data.email == request.auth.token.email
+                    && request.resource.data.accountStatus == 'ACTIVE'
+                    && request.resource.data.affiliationVerified == false;
+
+      // User can update limited personal fields; cannot self-grant verification or status
+      allow update: if isOwner(uid) 
+                    && request.resource.data.uid == uid
+                    && request.resource.data.email == resource.data.email
+                    && request.resource.data.affiliationVerified == resource.data.affiliationVerified
+                    && request.resource.data.accountStatus == resource.data.accountStatus;
+      
+      allow delete: if false; // Deletions handled via trusted Cloud Function
+    }
+
+    // ========================================================
+    // DONOR PRIVATE: donorPrivate/{uid}
+    // ========================================================
+    match /donorPrivate/{uid} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // ========================================================
+    // DONOR PUBLIC: donorPublic/{uid}
+    // ========================================================
+    match /donorPublic/{uid} {
+      // Anyone can read sanitized public donor documents that opted into visibility
+      allow read: if resource.data.isPublicVisible == true;
+      allow write: if false; // Writes exclusively performed by Cloud Functions Admin SDK
+    }
+
+    // ========================================================
+    // REQUESTER PRIVATE: requesterPrivate/{uid}
+    // ========================================================
+    match /requesterPrivate/{uid} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // ========================================================
+    // BLOOD REQUESTS: bloodRequests/{requestId}
+    // ========================================================
+    match /bloodRequests/{requestId} {
+      allow read: if isAuthenticated() && (
+        resource.data.requesterUid == request.auth.uid ||
+        isAdmin()
+      );
+      allow write: if false; // Requests created and modified via Cloud Functions
+    }
+
+    // ========================================================
+    // REQUEST PUBLIC: requestPublic/{requestId}
+    // ========================================================
+    match /requestPublic/{requestId} {
+      // Publicly viewable by all guests and users
+      allow read: if true;
+      allow write: if false; // Maintained solely by Cloud Functions
+    }
+
+    // ========================================================
+    // REQUEST RESPONSES: requestResponses/{responseId}
+    // ========================================================
+    match /requestResponses/{responseId} {
+      allow read: if isAuthenticated() && (
+        resource.data.requesterUid == request.auth.uid ||
+        resource.data.donorUid == request.auth.uid ||
+        isAdmin()
+      );
+      allow write: if false; // Written via transactional Cloud Function
+    }
+
+    // ========================================================
+    // CONTACT GRANTS: contactGrants/{grantId}
+    // ========================================================
+    match /contactGrants/{grantId} {
+      // Direct client queries forbidden; access mediated via Cloud Function
+      allow read, write: if false;
+    }
+
+    // ========================================================
+    // NOTIFICATIONS: notifications/{notificationId}
+    // ========================================================
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Recipient can only mark read: isRead == true
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
+      allow create, delete: if false;
+    }
+
+    // ========================================================
+    // DEVICE TOKENS: deviceTokens/{uid}/tokens/{tokenId}
+    // ========================================================
+    match /deviceTokens/{uid}/tokens/{tokenId} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // ========================================================
+    // REPORTS: reports/{reportId}
+    // ========================================================
+    match /reports/{reportId} {
+      allow read: if isAuthenticated() && (
+        resource.data.reporterUid == request.auth.uid ||
+        isAdmin()
+      );
+      allow write: if false; // Submissions mediated via Cloud Function
+    }
+
+    // ========================================================
+    // ADMIN AUDIT LOGS: adminAuditLogs/{logId}
+    // ========================================================
+    match /adminAuditLogs/{logId} {
+      allow read: if isSuperAdmin();
+      allow write: if false; // Server-only audit log entries
+    }
+  }
+}

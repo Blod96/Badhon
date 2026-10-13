@@ -1,0 +1,32 @@
+{
+  "name": "badhon-nwu-blood-connect",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NWU Blood Connect (Badhon) - University and Community Blood Donation Platform",
+  "workspaces": [
+    "apps/*",
+    "functions",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "pnpm --filter \"./packages/*\" build && pnpm --filter \"./apps/*\" --filter functions build",
+    "lint": "pnpm --recursive run lint",
+    "test": "pnpm --recursive run test",
+    "test:lifecycle": "npx tsx tests/requests_lifecycle.test.ts",
+    "test:matching": "npx tsx tests/matching_and_notifications.test.ts",
+    "test:contacts": "npx tsx tests/contact_sharing_security.test.ts",
+    "test:moderation": "npx tsx tests/admin_moderation_security.test.ts",
+    "test:offline": "npx tsx tests/offline_resilience.test.ts",
+    "test:e2e": "npx tsx scripts/e2e-smoke-test.ts",
+    "test:all": "npx tsx tests/requests_lifecycle.test.ts && npx tsx tests/matching_and_notifications.test.ts && npx tsx tests/contact_sharing_security.test.ts && npx tsx tests/admin_moderation_security.test.ts && npx tsx tests/offline_resilience.test.ts && npx tsx scripts/e2e-smoke-test.ts",
+    "test:rules": "firebase emulators:exec --only firestore \"npx tsx firebase/firestore.rules.test.ts\"",
+    "emulators:start": "firebase emulators:start --only auth,firestore,functions,hosting"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.5.4"
+  },
+  "packageManager": "pnpm@12.3.4"
+}

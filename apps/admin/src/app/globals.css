@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-brand-primary: #DC2626;
+  --color-admin-sidebar: #0F172A;
+  --color-admin-surface: #F8FAFC;
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475569;
+}
+
+html, body {
+  background-color: var(--color-admin-surface);
+  color: var(--color-text-primary);
+  overflow-x: clip;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 2px;
+}
+
+button, a, input, select {
+  min-height: 40px;
+}
