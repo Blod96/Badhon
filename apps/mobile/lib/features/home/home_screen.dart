@@ -228,17 +228,34 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 8),
 
           // Urgent Request Cards Preview
-          ...SyntheticData.requests.map((req) {
-            final isEmergency = req['urgency'] == 'EMERGENCY';
-            return Card(
+          if (SyntheticData.requests.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(24),
               margin: const EdgeInsets.only(bottom: 12),
-              shape: RoundedRectangleBorder(
+              decoration: BoxDecoration(
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                side: BorderSide(
-                  color: isEmergency ? const Color(0xFFFECACA) : AppTheme.borderSubtle,
-                  width: isEmergency ? 1.5 : 1,
+                border: Border.all(color: AppTheme.borderSubtle),
+              ),
+              child: const Center(
+                child: Text(
+                  'No active emergency blood requests in your region.',
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                 ),
               ),
+            )
+          else
+            ...SyntheticData.requests.map((req) {
+              final isEmergency = req['urgency'] == 'EMERGENCY';
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: isEmergency ? const Color(0xFFFECACA) : AppTheme.borderSubtle,
+                    width: isEmergency ? 1.5 : 1,
+                  ),
+                ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(

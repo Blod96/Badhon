@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FileText, ShieldAlert, UserCheck, ShieldCheck, Clock, Filter } from "lucide-react";
+import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
 interface AuditLogRecord {
   logId: string;
@@ -13,49 +15,51 @@ interface AuditLogRecord {
   createdAt: string;
 }
 
-const SYNTHETIC_AUDIT_LOGS: AuditLogRecord[] = [
-  {
-    logId: "audit_1001",
-    adminUid: "admin_super_1",
-    action: "USER_SUSPEND",
-    targetType: "USER",
-    targetId: "u4_suspicious_broker",
-    reason: "Reported commercial blood selling activity",
-    createdAt: "2026-10-13 14:15:22"
-  },
-  {
-    logId: "audit_1002",
-    adminUid: "admin_super_1",
-    action: "REQUEST_FORCE_CANCEL",
-    targetType: "REQUEST",
-    targetId: "req_synthetic_104",
-    reason: "Duplicate submission reported by emergency ward",
-    createdAt: "2026-10-13 12:40:05"
-  },
-  {
-    logId: "audit_1003",
-    adminUid: "admin_super_1",
-    action: "ASSIGN_ROLE",
-    targetType: "USER",
-    targetId: "u1_tanvir_ahmed",
-    reason: "NWU Blood Club student executive coordinator appointment",
-    createdAt: "2026-10-12 18:22:10"
-  },
-  {
-    logId: "audit_1004",
-    adminUid: "admin_moderator_2",
-    action: "USER_REACTIVATE",
-    targetType: "USER",
-    targetId: "u8_cleared_student",
-    reason: "Identity and university student registration verified",
-    createdAt: "2026-10-11 09:30:45"
-  }
-];
-
 export function AuditLogViewer() {
+  const [logs, setLogs] = useState<AuditLogRecord[]>([]);
   const [filterAction, setFilterAction] = useState<string>("ALL");
 
-  const filteredLogs = SYNTHETIC_AUDIT_LOGS.filter((log) => {
+  useEffect(() => {
+    try {
+      const q = query(
+        collection(db, "adminAuditLogs"),
+        orderBy("createdAt", "desc"),
+        limit(50)
+      );
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const list: AuditLogRecord[] = snapshot.docs.map((d) => {
+            const data = d.data();
+            let dateStr = "Recent";
+            if (data.createdAt?.toDate) {
+              dateStr = data.createdAt.toDate().toLocaleString();
+            } else if (typeof data.createdAt === "string") {
+              dateStr = data.createdAt;
+            }
+            return {
+              logId: d.id,
+              adminUid: data.adminUid || "system",
+              action: data.action || "ADMIN_ACTION",
+              targetType: data.targetType || "SYSTEM",
+              targetId: data.targetId || "-",
+              reason: data.reason || "Operational review",
+              createdAt: dateStr
+            };
+          });
+          setLogs(list);
+        },
+        (err) => {
+          console.debug("Firestore adminAuditLogs listener inactive:", err);
+        }
+      );
+      return () => unsubscribe();
+    } catch {
+      // Offline fallback
+    }
+  }, []);
+
+  const filteredLogs = logs.filter((log) => {
     if (filterAction === "ALL") return true;
     return log.action.includes(filterAction);
   });
@@ -154,6 +158,13 @@ export function AuditLogViewer() {
                 </tr>
               );
             })}
+            {filteredLogs.length === 0 && (
+              <tr>
+                <td colSpan={6} className="py-10 px-4 text-center text-slate-400">
+                  No admin audit events recorded yet.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

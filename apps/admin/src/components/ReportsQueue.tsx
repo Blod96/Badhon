@@ -1,28 +1,71 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ReportCategory, ReportStatus } from "@badhon/domain";
 import { AlertTriangle, Check, X, ShieldAlert } from "lucide-react";
+import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
-const SYNTHETIC_REPORTS = [
-  {
-    reportId: "rep-001",
-    targetType: "USER",
-    targetId: "u4 (broker123@yahoo.com)",
-    category: ReportCategory.COMMERCIAL_BROKER,
-    details: "User demanded 2000 BDT cash advance over phone after offering to donate at KMCH.",
-    status: ReportStatus.PENDING,
-    createdAt: "2026-10-13 17:40"
-  }
-];
+interface ReportItem {
+  reportId: string;
+  targetType: string;
+  targetId: string;
+  category: ReportCategory;
+  details: string;
+  status: ReportStatus;
+  createdAt: string;
+}
 
 export function ReportsQueue() {
-  const [reports, setReports] = useState(SYNTHETIC_REPORTS);
+  const [reports, setReports] = useState<ReportItem[]>([]);
 
-  const resolveReport = (reportId: string, newStatus: ReportStatus) => {
-    setReports((prev) =>
-      prev.map((r) => (r.reportId === reportId ? { ...r, status: newStatus } : r))
-    );
+  useEffect(() => {
+    try {
+      const q = collection(db, "reports");
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const list: ReportItem[] = snapshot.docs.map((d) => {
+            const data = d.data();
+            let dateStr = "Recent";
+            if (data.createdAt?.toDate) {
+              dateStr = data.createdAt.toDate().toLocaleString();
+            } else if (typeof data.createdAt === "string") {
+              dateStr = data.createdAt;
+            }
+            return {
+              reportId: d.id,
+              targetType: data.targetType || "USER",
+              targetId: data.targetId || "Unknown Target",
+              category: (data.category as ReportCategory) || ReportCategory.COMMERCIAL_BROKER,
+              details: data.details || "No details provided.",
+              status: (data.status as ReportStatus) || ReportStatus.PENDING,
+              createdAt: dateStr
+            };
+          });
+          setReports(list);
+        },
+        (err) => {
+          console.debug("Firestore reports listener inactive:", err);
+        }
+      );
+      return () => unsubscribe();
+    } catch {
+      // Offline fallback
+    }
+  }, []);
+
+  const resolveReport = async (reportId: string, newStatus: ReportStatus) => {
+    try {
+      await updateDoc(doc(db, "reports", reportId), {
+        status: newStatus
+      });
+    } catch (err) {
+      console.warn("Failed to update report in Firestore:", err);
+      setReports((prev) =>
+        prev.map((r) => (r.reportId === reportId ? { ...r, status: newStatus } : r))
+      );
+    }
   };
 
   return (

@@ -152,11 +152,34 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
         ],
       ),
-      body: ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: _notifications.length,
-        separatorBuilder: (context, index) => const Divider(height: 1, color: AppTheme.borderSubtle),
-        itemBuilder: (context, index) {
+      body: _notifications.isEmpty
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.notifications_none, size: 56, color: AppTheme.borderSubtle),
+                    SizedBox(height: 16),
+                    Text(
+                      'No notifications yet',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      'You will receive match alerts and response updates here.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: _notifications.length,
+              separatorBuilder: (context, index) => const Divider(height: 1, color: AppTheme.borderSubtle),
+              itemBuilder: (context, index) {
           final notif = _notifications[index];
           final isRead = notif['isRead'] as bool;
           return ListTile(

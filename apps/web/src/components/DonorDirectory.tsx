@@ -7,81 +7,18 @@ import { Search, MapPin, CheckCircle2, Clock, ShieldCheck, UserCheck } from "luc
 import { db } from "../lib/firebase";
 
 
-// Clearly labeled synthetic donor records for Phase 2 UI prototype
-const SYNTHETIC_DONORS = [
-  {
-    uid: "d1",
-    displayName: "Tanvir Ahmed",
-    bloodGroup: BloodGroup.O_POSITIVE,
-    district: "Khulna",
-    upazila: "Sonadanga",
-    affiliationType: AffiliationType.NWU_MEMBER,
-    department: "CSE, 8th Sem",
-    isAvailable: true,
-    isEligible: true,
-    verifiedBadge: true
-  },
-  {
-    uid: "d2",
-    displayName: "Nusrat Jahan",
-    bloodGroup: BloodGroup.A_POSITIVE,
-    district: "Khulna",
-    upazila: "Khalishpur",
-    affiliationType: AffiliationType.NWU_MEMBER,
-    department: "BBA, Faculty",
-    isAvailable: true,
-    isEligible: true,
-    verifiedBadge: true
-  },
-  {
-    uid: "d3",
-    displayName: "Rashedul Karim",
-    bloodGroup: BloodGroup.B_POSITIVE,
-    district: "Khulna",
-    upazila: "Boyra",
-    affiliationType: AffiliationType.EXTERNAL,
-    department: "Khulna City",
-    isAvailable: true,
-    isEligible: true,
-    verifiedBadge: false
-  },
-  {
-    uid: "d4",
-    displayName: "Farzana Akter",
-    bloodGroup: BloodGroup.AB_POSITIVE,
-    district: "Khulna",
-    upazila: "Daulatpur",
-    affiliationType: AffiliationType.NWU_MEMBER,
-    department: "EEE, Alumni",
-    isAvailable: false,
-    isEligible: false,
-    verifiedBadge: true
-  },
-  {
-    uid: "d5",
-    displayName: "Mehedi Hasan",
-    bloodGroup: BloodGroup.O_NEGATIVE,
-    district: "Khulna",
-    upazila: "Sonadanga",
-    affiliationType: AffiliationType.NWU_MEMBER,
-    department: "Law & Justice",
-    isAvailable: true,
-    isEligible: true,
-    verifiedBadge: true
-  },
-  {
-    uid: "d6",
-    displayName: "Sabrina Mostafa",
-    bloodGroup: BloodGroup.B_NEGATIVE,
-    district: "Khulna",
-    upazila: "Khan Jahan Ali",
-    affiliationType: AffiliationType.EXTERNAL,
-    department: "Community Donor",
-    isAvailable: true,
-    isEligible: true,
-    verifiedBadge: false
-  }
-];
+export interface PublicDonor {
+  uid: string;
+  displayName: string;
+  bloodGroup: BloodGroup;
+  district: string;
+  upazila: string;
+  affiliationType: AffiliationType;
+  department: string;
+  isAvailable: boolean;
+  isEligible: boolean;
+  verifiedBadge: boolean;
+}
 
 const KHULNA_UPAZILAS = [
   "All Upazilas",
@@ -98,7 +35,7 @@ export function DonorDirectory() {
   const [selectedGroup, setSelectedGroup] = useState<string>("ALL");
   const [selectedUpazila, setSelectedUpazila] = useState<string>("All Upazilas");
   const [nwuOnly, setNwuOnly] = useState<boolean>(false);
-  const [donors, setDonors] = useState<typeof SYNTHETIC_DONORS>(SYNTHETIC_DONORS);
+  const [donors, setDonors] = useState<PublicDonor[]>([]);
   const [isLive, setIsLive] = useState<boolean>(false);
 
   React.useEffect(() => {
@@ -107,29 +44,26 @@ export function DonorDirectory() {
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
-          if (!snapshot.empty) {
-            const liveList = snapshot.docs.map((doc) => {
-              const data = doc.data();
-              return {
-                uid: doc.id,
-                displayName: data.displayName || "Donor",
-                bloodGroup: data.bloodGroup as BloodGroup,
-                district: data.district || "Khulna",
-                upazila: data.upazila || "Sonadanga",
-                affiliationType: data.affiliationType as AffiliationType,
-                department: data.department || (data.affiliationType === AffiliationType.NWU_MEMBER ? "NWU Member" : "Community Donor"),
-                isAvailable: data.isAvailable ?? true,
-                isEligible: data.isEligible ?? true,
-                verifiedBadge: data.verifiedBadge ?? false
-              };
-            });
-            setDonors(liveList);
-            setIsLive(true);
-          }
+          const liveList: PublicDonor[] = snapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+              uid: doc.id,
+              displayName: data.displayName || "Donor",
+              bloodGroup: data.bloodGroup as BloodGroup,
+              district: data.district || "Khulna",
+              upazila: data.upazila || "Sonadanga",
+              affiliationType: data.affiliationType as AffiliationType,
+              department: data.department || (data.affiliationType === AffiliationType.NWU_MEMBER ? "NWU Member" : "Community Donor"),
+              isAvailable: data.isAvailable ?? true,
+              isEligible: data.isEligible ?? true,
+              verifiedBadge: data.verifiedBadge ?? false
+            };
+          });
+          setDonors(liveList);
+          setIsLive(true);
         },
         (err) => {
-          // Gracefully retain synthetic data if offline / permission check
-          console.debug("Firestore live listener inactive, using offline preview data.", err);
+          console.debug("Firestore live donor listener inactive:", err);
         }
       );
       return () => unsubscribe();
@@ -166,9 +100,9 @@ export function DonorDirectory() {
 
           <div className="flex items-center space-x-3 text-xs text-text-secondary bg-surface-bg px-3 py-2 rounded-lg border border-surface-muted">
             <span className="inline-block w-2 h-2 rounded-full bg-status-available"></span>
-            <span>Available: {SYNTHETIC_DONORS.filter(d => d.isAvailable).length}</span>
+            <span>Available: {donors.filter(d => d.isAvailable).length}</span>
             <span className="text-slate-300">|</span>
-            <span className="font-medium text-text-primary">Preview Data</span>
+            <span className="font-medium text-text-primary">{isLive ? "Live Directory" : "Connecting..."}</span>
           </div>
         </div>
 

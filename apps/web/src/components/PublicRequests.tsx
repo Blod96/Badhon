@@ -7,52 +7,24 @@ import { AlertCircle, Clock, Hospital, MapPin, Users, HeartHandshake, Plus } fro
 import { db } from "../lib/firebase";
 import { CreateRequestModal } from "./CreateRequestModal";
 
-// Clearly labeled synthetic request preview data
-const SYNTHETIC_REQUESTS = [
-  {
-    requestId: "req-101",
-    bloodGroup: BloodGroup.B_POSITIVE,
-    unitsNeeded: 2,
-    hospitalName: "Khulna Medical College Hospital (KMCH)",
-    hospitalAddress: "Boyra, Khulna",
-    district: "Khulna",
-    upazila: "Boyra",
-    urgency: Urgency.EMERGENCY,
-    neededAt: "Today, within 4 hours",
-    status: RequestStatus.OPEN,
-    clinicalDetails: "Emergency C-Section surgery. O+ or B+ compatible donors urgent."
-  },
-  {
-    requestId: "req-102",
-    bloodGroup: BloodGroup.O_NEGATIVE,
-    unitsNeeded: 1,
-    hospitalName: "Gazi Medical College Hospital",
-    hospitalAddress: "Sonadanga, Khulna",
-    district: "Khulna",
-    upazila: "Sonadanga",
-    urgency: Urgency.URGENT,
-    neededAt: "Tomorrow morning, 9:00 AM",
-    status: RequestStatus.IN_PROGRESS,
-    clinicalDetails: "Thalassemia regular routine transfusion."
-  },
-  {
-    requestId: "req-103",
-    bloodGroup: BloodGroup.A_POSITIVE,
-    unitsNeeded: 2,
-    hospitalName: "Khulna City Medical College & Hospital",
-    hospitalAddress: "Mujgunni, Khulna",
-    district: "Khulna",
-    upazila: "Khalishpur",
-    urgency: Urgency.NORMAL,
-    neededAt: "Oct 16, 2026, 11:00 AM",
-    status: RequestStatus.OPEN,
-    clinicalDetails: "Orthopedic surgery scheduled requirement."
-  }
-];
+export interface PublicRequestItem {
+  requestId: string;
+  bloodGroup: BloodGroup;
+  unitsNeeded: number;
+  hospitalName: string;
+  hospitalAddress: string;
+  district: string;
+  upazila: string;
+  urgency: Urgency;
+  neededAt: string;
+  status: RequestStatus;
+  clinicalDetails: string;
+}
 
 export function PublicRequests() {
-  const [requests, setRequests] = useState<typeof SYNTHETIC_REQUESTS>(SYNTHETIC_REQUESTS);
+  const [requests, setRequests] = useState<PublicRequestItem[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     try {
@@ -60,33 +32,33 @@ export function PublicRequests() {
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
-          if (!snapshot.empty) {
-            const liveList = snapshot.docs.map((doc) => {
-              const data = doc.data();
-              return {
-                requestId: doc.id,
-                bloodGroup: data.bloodGroup as BloodGroup,
-                unitsNeeded: data.unitsNeeded || 1,
-                hospitalName: data.hospitalName || "Hospital in Khulna",
-                hospitalAddress: data.hospitalAddress || "",
-                district: data.district || "Khulna",
-                upazila: data.upazila || "Sonadanga",
-                urgency: (data.urgency || Urgency.EMERGENCY) as Urgency,
-                neededAt: data.neededAt?.toDate ? data.neededAt.toDate().toLocaleString() : String(data.neededAt || "Urgent"),
-                status: data.status as RequestStatus,
-                clinicalDetails: data.clinicalDetails || ""
-              };
-            });
-            setRequests(liveList);
-          }
+          setIsLoading(false);
+          const liveList = snapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+              requestId: doc.id,
+              bloodGroup: data.bloodGroup as BloodGroup,
+              unitsNeeded: data.unitsNeeded || 1,
+              hospitalName: data.hospitalName || "Hospital in Khulna",
+              hospitalAddress: data.hospitalAddress || "",
+              district: data.district || "Khulna",
+              upazila: data.upazila || "Sonadanga",
+              urgency: (data.urgency || Urgency.EMERGENCY) as Urgency,
+              neededAt: data.neededAt?.toDate ? data.neededAt.toDate().toLocaleString() : String(data.neededAt || "Urgent"),
+              status: data.status as RequestStatus,
+              clinicalDetails: data.clinicalDetails || ""
+            };
+          });
+          setRequests(liveList);
         },
         (err) => {
-          console.debug("Firestore live request stream inactive, using offline preview data.", err);
+          console.debug("Firestore live request stream inactive.", err);
+          setIsLoading(false);
         }
       );
       return () => unsubscribe();
     } catch {
-      // Offline fallback
+      setIsLoading(false);
     }
   }, []);
 
@@ -126,9 +98,29 @@ export function PublicRequests() {
           </div>
         </div>
 
-        {/* Request Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {requests.map((req) => {
+        {/* Request Cards Grid or Empty State */}
+        {requests.length === 0 ? (
+          <div className="bg-white rounded-3xl border border-slate-200/80 p-12 text-center max-w-lg mx-auto space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-100">
+              <HeartHandshake className="w-8 h-8" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-slate-800">বর্তমানে কোনো জরুরি রক্তের আবেদন নেই</h3>
+              <p className="text-xs text-slate-500">
+                কোনো রক্তের প্রয়োজনে আপনি এখনই সরাসরি নতুন রিকোয়েস্ট পোস্ট করতে পারেন।
+              </p>
+            </div>
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-brand-primary hover:bg-brand-hover shadow-sm transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Post Blood Request</span>
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {requests.map((req) => {
             const isCritical = req.urgency === Urgency.EMERGENCY;
             const isUrgent = req.urgency === Urgency.URGENT;
 
@@ -214,6 +206,7 @@ export function PublicRequests() {
             );
           })}
         </div>
+        )}
       </div>
 
       <CreateRequestModal

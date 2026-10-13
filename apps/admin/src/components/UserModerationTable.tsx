@@ -1,70 +1,79 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BloodGroup, BloodGroupLabels, AffiliationType, AccountStatus } from "@badhon/domain";
 import { CheckCircle2, XCircle, ShieldAlert, ShieldCheck } from "lucide-react";
+import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
-const SYNTHETIC_USERS = [
-  {
-    uid: "u1",
-    displayName: "Tanvir Ahmed",
-    email: "tanvir.cse@nwu.edu.bd",
-    bloodGroup: BloodGroup.O_POSITIVE,
-    affiliationType: AffiliationType.NWU_MEMBER,
-    department: "CSE",
-    status: AccountStatus.ACTIVE,
-    affiliationVerified: true
-  },
-  {
-    uid: "u2",
-    displayName: "Nusrat Jahan",
-    email: "nusrat.bba@nwu.edu.bd",
-    bloodGroup: BloodGroup.A_POSITIVE,
-    affiliationType: AffiliationType.NWU_MEMBER,
-    department: "BBA Faculty",
-    status: AccountStatus.ACTIVE,
-    affiliationVerified: true
-  },
-  {
-    uid: "u3",
-    displayName: "Rashedul Karim",
-    email: "rashedul@gmail.com",
-    bloodGroup: BloodGroup.B_POSITIVE,
-    affiliationType: AffiliationType.EXTERNAL,
-    department: "External Donor",
-    status: AccountStatus.ACTIVE,
-    affiliationVerified: false
-  },
-  {
-    uid: "u4",
-    displayName: "Suspicious Broker Account",
-    email: "broker123@yahoo.com",
-    bloodGroup: BloodGroup.AB_POSITIVE,
-    affiliationType: AffiliationType.EXTERNAL,
-    department: "Unverified",
-    status: AccountStatus.SUSPENDED,
-    affiliationVerified: false
-  }
-];
+interface ManagedUser {
+  uid: string;
+  displayName: string;
+  email: string;
+  bloodGroup: BloodGroup;
+  affiliationType: AffiliationType;
+  department: string;
+  status: AccountStatus;
+  affiliationVerified: boolean;
+}
 
 export function UserModerationTable() {
-  const [users, setUsers] = useState(SYNTHETIC_USERS);
+  const [users, setUsers] = useState<ManagedUser[]>([]);
 
-  const toggleStatus = (uid: string) => {
-    setUsers((prev) =>
-      prev.map((user) => {
-        if (user.uid === uid) {
-          return {
-            ...user,
-            status:
-              user.status === AccountStatus.ACTIVE
-                ? AccountStatus.SUSPENDED
-                : AccountStatus.ACTIVE
-          };
+  useEffect(() => {
+    try {
+      const q = collection(db, "users");
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const list: ManagedUser[] = snapshot.docs.map((d) => {
+            const data = d.data();
+            return {
+              uid: d.id,
+              displayName: data.displayName || "User",
+              email: data.email || "No email",
+              bloodGroup: (data.bloodGroup as BloodGroup) || BloodGroup.O_POSITIVE,
+              affiliationType: (data.affiliationType as AffiliationType) || AffiliationType.EXTERNAL,
+              department: data.department || (data.affiliationType === AffiliationType.NWU_MEMBER ? "NWU Member" : "General"),
+              status: (data.status as AccountStatus) || AccountStatus.ACTIVE,
+              affiliationVerified: data.affiliationVerified ?? false
+            };
+          });
+          setUsers(list);
+        },
+        (err) => {
+          console.debug("Firestore users listener inactive:", err);
         }
-        return user;
-      })
-    );
+      );
+      return () => unsubscribe();
+    } catch {
+      // Offline fallback
+    }
+  }, []);
+
+  const toggleStatus = async (uid: string) => {
+    const targetUser = users.find((u) => u.uid === uid);
+    if (!targetUser) return;
+    const nextStatus =
+      targetUser.status === AccountStatus.ACTIVE
+        ? AccountStatus.SUSPENDED
+        : AccountStatus.ACTIVE;
+
+    try {
+      await updateDoc(doc(db, "users", uid), {
+        status: nextStatus
+      });
+    } catch (err) {
+      console.warn("Failed to update user status in Firestore:", err);
+      setUsers((prev) =>
+        prev.map((user) => {
+          if (user.uid === uid) {
+            return { ...user, status: nextStatus };
+          }
+          return user;
+        })
+      );
+    }
   };
 
   return (
@@ -159,6 +168,13 @@ export function UserModerationTable() {
                 </td>
               </tr>
             ))}
+            {users.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-6 py-10 text-center text-slate-400">
+                  No registered users in the database yet.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

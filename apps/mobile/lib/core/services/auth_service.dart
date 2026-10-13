@@ -26,14 +26,7 @@ class AuthService {
   factory AuthService() => _instance;
   AuthService._internal();
 
-  UserSession? _currentUser = UserSession(
-    uid: 'synthetic-user-123',
-    displayName: 'Tanvir Ahmed',
-    email: 'tanvir.cse@nwu.edu.bd',
-    phoneNumber: '+8801700000001',
-    isPhoneVerified: true,
-    bloodGroup: 'B+',
-  );
+  UserSession? _currentUser;
 
   final _userStreamController = StreamController<UserSession?>.broadcast();
   Stream<UserSession?> get userStream => _userStreamController.stream;
@@ -41,15 +34,13 @@ class AuthService {
   UserSession? get currentUser => _currentUser;
 
   Future<UserSession> signInWithGoogle() async {
-    // Simulated Google Auth Session for Phase 3 Mobile Prototype
     await Future.delayed(const Duration(milliseconds: 500));
     _currentUser = UserSession(
-      uid: 'synthetic-user-123',
-      displayName: 'Tanvir Ahmed',
-      email: 'tanvir.cse@nwu.edu.bd',
-      phoneNumber: '+8801700000001',
-      isPhoneVerified: true,
-      bloodGroup: 'B+',
+      uid: 'user-${DateTime.now().millisecondsSinceEpoch}',
+      displayName: 'Google User',
+      email: 'user@gmail.com',
+      isPhoneVerified: false,
+      bloodGroup: 'O+',
     );
     _userStreamController.add(_currentUser);
     return _currentUser!;

@@ -1,54 +1,78 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BloodGroup, BloodGroupLabels, Urgency, RequestStatus } from "@badhon/domain";
 import { AlertCircle, Ban, CheckCircle } from "lucide-react";
+import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
-const SYNTHETIC_REQUESTS = [
-  {
-    requestId: "req-101",
-    requesterName: "Kamrul Islam",
-    hospitalName: "Khulna Medical College Hospital (KMCH)",
-    bloodGroup: BloodGroup.B_POSITIVE,
-    unitsNeeded: 2,
-    urgency: Urgency.EMERGENCY,
-    status: RequestStatus.OPEN,
-    createdAt: "2026-10-13 18:30"
-  },
-  {
-    requestId: "req-102",
-    requesterName: "Dr. Nazmul Huda",
-    hospitalName: "Gazi Medical College Hospital",
-    bloodGroup: BloodGroup.O_NEGATIVE,
-    unitsNeeded: 1,
-    urgency: Urgency.URGENT,
-    status: RequestStatus.IN_PROGRESS,
-    createdAt: "2026-10-13 14:15"
-  },
-  {
-    requestId: "req-103",
-    requesterName: "Shorif Hossain",
-    hospitalName: "Khulna City Medical College",
-    bloodGroup: BloodGroup.A_POSITIVE,
-    unitsNeeded: 2,
-    urgency: Urgency.NORMAL,
-    status: RequestStatus.OPEN,
-    createdAt: "2026-10-13 11:00"
-  }
-];
+interface ModerationRequest {
+  requestId: string;
+  requesterName: string;
+  hospitalName: string;
+  bloodGroup: BloodGroup;
+  unitsNeeded: number;
+  urgency: Urgency;
+  status: RequestStatus;
+  createdAt: string;
+}
 
 export function RequestModerationTable() {
-  const [requests, setRequests] = useState(SYNTHETIC_REQUESTS);
+  const [requests, setRequests] = useState<ModerationRequest[]>([]);
 
-  const forceCancel = (requestId: string) => {
-    setRequests((prev) =>
-      prev.map((req) => {
-        if (req.requestId === requestId) {
-          return { ...req, status: RequestStatus.CANCELLED };
+  useEffect(() => {
+    try {
+      const q = collection(db, "bloodRequests");
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const list: ModerationRequest[] = snapshot.docs.map((d) => {
+            const data = d.data();
+            let dateStr = "Recent";
+            if (data.createdAt?.toDate) {
+              dateStr = data.createdAt.toDate().toLocaleString();
+            } else if (typeof data.createdAt === "string") {
+              dateStr = data.createdAt;
+            }
+            return {
+              requestId: d.id,
+              requesterName: data.requesterName || "Requester",
+              hospitalName: data.hospitalName || "Hospital",
+              bloodGroup: (data.bloodGroup as BloodGroup) || BloodGroup.O_POSITIVE,
+              unitsNeeded: data.unitsNeeded || 1,
+              urgency: (data.urgency as Urgency) || Urgency.NORMAL,
+              status: (data.status as RequestStatus) || RequestStatus.OPEN,
+              createdAt: dateStr
+            };
+          });
+          setRequests(list);
+        },
+        (err) => {
+          console.debug("Firestore bloodRequests listener inactive:", err);
         }
-        return req;
-      })
-    );
+      );
+      return () => unsubscribe();
+    } catch {
+      // Offline fallback
+    }
+  }, []);
+
+  const forceCancel = async (requestId: string) => {
+    try {
+      await updateDoc(doc(db, "bloodRequests", requestId), {
+        status: RequestStatus.CANCELLED
+      });
+    } catch (err) {
+      console.warn("Failed to cancel request in Firestore:", err);
+      setRequests((prev) =>
+        prev.map((req) => {
+          if (req.requestId === requestId) {
+            return { ...req, status: RequestStatus.CANCELLED };
+          }
+          return req;
+        })
+      );
+    }
   };
 
   return (
@@ -139,6 +163,13 @@ export function RequestModerationTable() {
                 </td>
               </tr>
             ))}
+            {requests.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-6 py-10 text-center text-slate-400">
+                  No active or past emergency requests recorded in Firestore.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

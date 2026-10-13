@@ -24,10 +24,39 @@ class MyRequestsScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          ...SyntheticData.requests.map((req) {
+      body: SyntheticData.requests.isEmpty
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.water_drop_outlined, size: 56, color: AppTheme.borderSubtle),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'No blood requests yet',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'You have not posted any emergency blood requests. Tap below to create one.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: onOpenCreateRequest,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('CREATE BLOOD REQUEST'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                ...SyntheticData.requests.map((req) {
             final isOpen = req['status'] == 'OPEN';
             return Card(
               margin: const EdgeInsets.only(bottom: 14),
